@@ -38,6 +38,14 @@ pip install -r requirements.txt
 - Smart scheduling — high/medium tasks schedule near the pet's preferred time; low priority follows owner's slot preference
 - Recurring tasks — daily/weekly tasks auto-create the next occurrence when marked done
 
+### Testing PawPal+
+```bash
+py -m pytest tests\test_pawpal.py
+```
+Cheks if sort_by_time() correctly orders tasks based on preferred_time and still keeps both tasks when they have the same time. Verifies sort_tasks_by_priority() always places high-priority tasks before lower-priority ones, regardless of the order they were added. Conflict detection tests check that tasks with the same preferred time are flagged as conflicts after generate_plan().
+
+Confidence Level: 5
+
 ### Suggested workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.
