@@ -26,7 +26,7 @@ Yes, added a link between owners and pets. Owners keep track of what pets they o
 
 - Describe one tradeoff your scheduler makes.
 - Why is that tradeoff reasonable for this scenario?
-
+One tradeoff the scheduler makes is that it schedules greedily by priority, meaning high-priority tasks are placed first without reconsidering later. This can cause lower-priority tasks to be left unscheduled even if a different arrangement could fit everything. This tradeoff could be reasonable because important tasks like feeding or medication should take priority over less critical tasks.
 ---
 
 ## 3. AI Collaboration

@@ -32,6 +32,12 @@ source .venv/bin/activate  # Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+### Smarter Scheduling
+- Conflict detection — warns when two tasks have overlapping preferred times
+- Scheduled vs preferred time — scheduler assigns a real clock time separate from what the user set
+- Smart scheduling — high/medium tasks schedule near the pet's preferred time; low priority follows owner's slot preference
+- Recurring tasks — daily/weekly tasks auto-create the next occurrence when marked done
+
 ### Suggested workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.
