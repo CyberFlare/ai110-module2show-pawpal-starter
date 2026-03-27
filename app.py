@@ -23,6 +23,8 @@ if "editing_task" not in st.session_state:
     st.session_state.editing_task = None  # (pet_index, task_index)
 if "plan_generated" not in st.session_state:
     st.session_state.plan_generated = False
+if "schedule_snapshot" not in st.session_state:
+    st.session_state.schedule_snapshot = None  # frozen display data, only updated on button click
 if "needs_regenerate" not in st.session_state:
     st.session_state.needs_regenerate = False
 
@@ -140,8 +142,10 @@ with st.form("pet_form"):
         st.rerun()
 
 if owner.pets:
-    for pet in owner.pets:
-        st.markdown(f"- **{pet.name}** ({pet.species}, {pet.age} yrs) — {len(pet.tasks)} task(s)")
+    cols = st.columns(len(owner.pets))
+    for col, pet in zip(cols, owner.pets):
+        pending = sum(1 for t in pet.tasks if not t.completed)
+        col.success(f"**{pet.name}** 🐾\n\n{pet.species} · {pet.age} yrs · {pending} task(s) pending")
 else:
     st.info("No pets yet. Add one above.")
 
@@ -268,6 +272,31 @@ btn_label = "Regenerate Schedule" if (st.session_state.plan_generated and st.ses
 
 if st.button(btn_label, type="primary"):
     scheduler.generate_plan()
+    # Snapshot plan as plain dicts so edits to live task objects don't affect the display
+    snap = {'morning': [], 'afternoon': [], 'evening': [], 'unscheduled': [], 'conflicts': [], 'stats': {}}
+    for slot in ('morning', 'afternoon', 'evening'):
+        for task in sorted(scheduler.plan[slot], key=lambda t: t.scheduled_time or "99:99"):
+            pet_name = scheduler.task_pet_map.get(id(task), "?")
+            snap[slot].append({
+                "Scheduled":  fmt_time(task.scheduled_time) if task.scheduled_time else "—",
+                "Pet":        pet_name,
+                "Task":       ("⭐ " if task.is_high_priority() else "") + task.title,
+                "Duration":   f"{task.duration} min",
+                "Priority":   task.priority,
+                "Preferred":  fmt_time(task.preferred_time),
+                "Due":        str(task.due_date),
+                "Recurring":  task.frequency if task.frequency != "once" else "—",
+            })
+    for task in scheduler.unscheduled_tasks:
+        pet_name = scheduler.task_pet_map.get(id(task), "?")
+        snap['unscheduled'].append({
+            "Pet": pet_name, "Task": task.title,
+            "Duration": f"{task.duration} min", "Priority": task.priority,
+            "Preferred": fmt_time(task.preferred_time),
+        })
+    snap['conflicts'] = list(scheduler.conflicts)
+    snap['stats'] = scheduler.get_stats()
+    st.session_state.schedule_snapshot = snap
     st.session_state.plan_generated = True
     st.session_state.needs_regenerate = False
     st.rerun()
@@ -275,46 +304,26 @@ if st.button(btn_label, type="primary"):
 if st.session_state.needs_regenerate and st.session_state.plan_generated:
     st.warning("Tasks or settings have changed — regenerate to update the schedule.")
 
-if st.session_state.plan_generated and scheduler.plan and any(scheduler.plan[s] for s in scheduler.plan):
-    stats = scheduler.get_stats()
-
-    if scheduler.conflicts:
+snap = st.session_state.schedule_snapshot
+if st.session_state.plan_generated and snap:
+    if snap['conflicts']:
         st.error("⚠️ Time Conflicts Detected:")
-        for warning in scheduler.conflicts:
+        for warning in snap['conflicts']:
             st.markdown(f"- {warning}")
 
     for slot in ("morning", "afternoon", "evening"):
         st.subheader(slot.capitalize())
-        if scheduler.plan[slot]:
-            sorted_tasks = sorted(scheduler.plan[slot], key=lambda t: t.scheduled_time or "99:99")
-            for task in sorted_tasks:
-                pet_name = scheduler.task_pet_map.get(id(task), "?")
-                indicator = "⭐ " if task.is_high_priority() else ""
-                freq_label = f" 🔁 {task.frequency}" if task.frequency != "once" else ""
-                sched = fmt_time(task.scheduled_time) if task.scheduled_time else "—"
-                st.markdown(f"- {indicator}**[{pet_name}]** {task.title} ({task.duration} min, {task.priority} priority) | scheduled {sched} | preferred {fmt_time(task.preferred_time)} | due {task.due_date}{freq_label}")
+        if snap[slot]:
+            st.dataframe(snap[slot], use_container_width=True, hide_index=True)
         else:
             st.caption("No tasks scheduled.")
 
-    if scheduler.unscheduled_tasks:
-        st.warning("Could not fit:")
-        for task in scheduler.unscheduled_tasks:
-            pet_name = scheduler.task_pet_map.get(id(task), "?")
-            st.markdown(f"- [{pet_name}] {task.title} ({task.duration} min)")
+    if snap['unscheduled']:
+        st.warning("⚠️ Could not fit the following tasks into any slot:")
+        st.dataframe(snap['unscheduled'], use_container_width=True, hide_index=True)
 
     st.divider()
-    st.subheader("Reasoning")
-    for slot in ("morning", "afternoon", "evening"):
-        if scheduler.reasoning[slot]:
-            st.markdown(f"**{slot.capitalize()}**")
-            for reason in scheduler.reasoning[slot]:
-                st.caption(f"- {reason}")
-    if scheduler.reasoning["unscheduled"]:
-        st.markdown("**Unscheduled**")
-        for reason in scheduler.reasoning["unscheduled"]:
-            st.caption(f"- {reason}")
-
-    st.divider()
+    stats = snap['stats']
     col1, col2, col3 = st.columns(3)
     col1.metric("Time Used", f"{stats['total_used']} min")
     col2.metric("Time Remaining", f"{stats['total_remaining']} min")

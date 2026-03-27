@@ -46,6 +46,23 @@ Cheks if sort_by_time() correctly orders tasks based on preferred_time and still
 
 Confidence Level: 5
 
+## Features
+- **Priority-based scheduling** - tasks are scheduled greedily from highest to lowest priority, with high and medium priority tasks placed at the pet's preferred time and low priority tasks placed in the owner's preferred time slot
+- **Gap-finding placement** - when a preferred time is occupied, the scheduler finds the next available gap rather than discarding the task
+- **Conflict detection** - identifies any two tasks whose preferred time windows overlap and surfaces a warning without crashing
+- **Chronological display** - scheduled tasks are sorted by actual assigned clock time within each slot
+- **Recurring tasks** - daily and weekly tasks automatically generate the next occurrence when marked complete
+- **Filtering** - tasks can be filtered by pet, completion status, or both
+- **Priority sorting** - tasks can be sorted from highest to lowest priority across all pets
+- **Completion tracking** - tasks can be marked done or undone; completed tasks are excluded from scheduling
+- **Deferred schedule updates** - the displayed schedule only updates when the user explicitly clicks Generate / Regenerate
+
+## Demo
+<img src="images/owner.png" alt="Owner setup screen">
+<img src="images/pet+tasks.png" alt="Pets and tasks screen">
+<img src="images/tasks+edit.png" alt="Task editing screen">
+<img src="images/schedule.png" alt="Schedule screen">
+
 ### Suggested workflow
 
 1. Read the scenario carefully and identify requirements and edge cases.
